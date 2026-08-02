@@ -1,9 +1,11 @@
 import 'package:get/get.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 import '../../features/jobs/model/job_models.dart';
 import '../notifications/local_notification_service.dart';
 import '../notifications/notification_badge_service.dart';
 import '../realtime/signalr_service.dart';
+import '../storage/secure_storage_service.dart';
 
 /// Turns SignalR job/chat events into system banner notifications.
 class PushBannerBridge extends GetxService {
@@ -11,6 +13,7 @@ class PushBannerBridge extends GetxService {
   Worker? _chatWorker;
   String? _lastJobKey;
   int? _lastChatId;
+  String? _currentUserId;
 
   void start() {
     if (!Get.isRegistered<SignalRService>()) return;
@@ -18,6 +21,7 @@ class PushBannerBridge extends GetxService {
 
     _jobWorker?.dispose();
     _chatWorker?.dispose();
+    _loadCurrentUserId();
 
     _jobWorker = ever<JobDetail?>(signalR.jobUpdated, (detail) {
       if (detail == null) return;
@@ -27,6 +31,12 @@ class PushBannerBridge extends GetxService {
 
       final status = detail.status?.trim();
       if (status == null || status.isEmpty) return;
+
+      // Customer already sees the requesting UI — no tray for Offering.
+      if (status.toLowerCase() == 'offering') {
+        _refreshBadge();
+        return;
+      }
 
       _show(
         title: 'Job update',
@@ -42,6 +52,9 @@ class PushBannerBridge extends GetxService {
       if (msg.id == _lastChatId) return;
       _lastChatId = msg.id;
 
+      // Never banner the sender for their own message.
+      if (_isOwnMessage(msg.senderId)) return;
+
       final preview = msg.message.trim();
       if (preview.isEmpty) return;
 
@@ -53,6 +66,29 @@ class PushBannerBridge extends GetxService {
       );
       _refreshBadge();
     });
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    try {
+      if (!Get.isRegistered<SecureStorageService>()) return;
+      final token = await Get.find<SecureStorageService>().getToken();
+      if (token == null || token.isEmpty) return;
+      final decoded = JwtDecoder.decode(token);
+      _currentUserId = (decoded['uid']?.toString() ??
+              decoded['sub']?.toString() ??
+              decoded['nameid']?.toString() ??
+              '')
+          .trim();
+    } catch (_) {
+      _currentUserId = null;
+    }
+  }
+
+  bool _isOwnMessage(String senderId) {
+    final uid = _currentUserId?.trim() ?? '';
+    final sender = senderId.trim();
+    if (uid.isEmpty || sender.isEmpty) return false;
+    return uid.toLowerCase() == sender.toLowerCase();
   }
 
   void _show({

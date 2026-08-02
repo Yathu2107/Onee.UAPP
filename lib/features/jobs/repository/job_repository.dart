@@ -27,6 +27,35 @@ class JobRepository with ApiClientMixin {
     }
   }
 
+  Future<ApiResponse<List<JobCategory>>> getCategories() async {
+    try {
+      final response = await _dio.get('/categories');
+      return parseMessageResponse(
+        response,
+        (raw) => JsonHelpers.parseObjectList(raw, JobCategory.fromJson),
+      );
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
+  Future<ApiResponse<JobMatchResult>> findWorkersByCategory(
+    int categoryId,
+  ) async {
+    try {
+      final response = await _dio.post(
+        '/jobs/find-workers-by-category',
+        data: {'categoryId': categoryId},
+      );
+      return parseMessageResponse(
+        response,
+        (raw) => JobMatchResult.fromJson(Map<String, dynamic>.from(raw as Map)),
+      );
+    } on DioException catch (e) {
+      throw mapDioError(e);
+    }
+  }
+
   Future<ApiResponse<JobDetail>> createJob({
     required String text,
     required List<String> workerIds,

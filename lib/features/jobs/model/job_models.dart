@@ -330,3 +330,34 @@ class JobMatchResult {
     );
   }
 }
+
+/// Public job category from `GET /categories`.
+class JobCategory {
+  const JobCategory({
+    required this.id,
+    required this.categoryName,
+  });
+
+  final int id;
+  final String categoryName;
+
+  factory JobCategory.fromJson(Map<String, dynamic> json) {
+    return JobCategory(
+      id: JsonHelpers.pickInt(json, [
+            'id',
+            'Id',
+            'categoryId',
+            'CategoryId',
+          ]) ??
+          0,
+      categoryName: JsonHelpers.pickString(json, [
+            'category_Name',
+            'categoryName',
+            'Category_Name',
+            'name',
+            'Name',
+          ]) ??
+          '',
+    );
+  }
+}

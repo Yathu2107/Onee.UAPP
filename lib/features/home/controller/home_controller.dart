@@ -116,7 +116,7 @@ class HomeController extends GetxController {
     }
   }
 
-  void goCreateJob() => Get.toNamed(AppRoutes.createJobDescribe);
+  void goCreateJob() => Get.toNamed(AppRoutes.createJobChooser);
 
   Future<void> goAddresses() async {
     await Get.toNamed(AppRoutes.addresses);

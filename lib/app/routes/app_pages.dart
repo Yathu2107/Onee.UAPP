@@ -14,8 +14,10 @@ import '../../features/jobs/chat/job_chat_binding.dart';
 import '../../features/jobs/chat/job_chat_view.dart';
 import '../../features/jobs/complaint/complaint_binding.dart';
 import '../../features/jobs/complaint/complaint_view.dart';
+import '../../features/jobs/create/browse_categories_view.dart';
 import '../../features/jobs/create/confirm_job_view.dart';
 import '../../features/jobs/create/create_job_binding.dart';
+import '../../features/jobs/create/create_job_chooser_view.dart';
 import '../../features/jobs/create/describe_job_view.dart';
 import '../../features/jobs/create/select_workers_view.dart';
 import '../../features/jobs/detail/job_detail_binding.dart';
@@ -79,8 +81,18 @@ class AppPages {
       binding: AddressFormBinding(),
     ),
     GetPage(
+      name: AppRoutes.createJobChooser,
+      page: () => const CreateJobChooserView(),
+      binding: CreateJobBinding(),
+    ),
+    GetPage(
       name: AppRoutes.createJobDescribe,
       page: () => const DescribeJobView(),
+      binding: CreateJobBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.createJobCategories,
+      page: () => const BrowseCategoriesView(),
       binding: CreateJobBinding(),
     ),
     GetPage(

@@ -26,7 +26,7 @@ class JobDetailController extends GetxController {
   late final int jobId;
   Worker? _jobUpdatedWorker;
   Timer? _countdownTimer;
-  String? _lastStatus;
+  Timer? _offeringPoll;
   bool _navigatingAway = false;
   bool _reloadAfterExpire = false;
 
@@ -67,9 +67,39 @@ class JobDetailController extends GetxController {
     _jobUpdatedWorker = ever<JobDetail?>(signalR.jobUpdated, (detail) {
       if (detail == null || detail.id != jobId) return;
       job.value = detail;
-      _lastStatus = detail.status;
       _startOfferCountdown();
       _onStatusChanged(detail);
+    });
+
+    // Safety net while waiting for a worker: poll if SignalR is quiet.
+    _startOfferingPoll();
+  }
+
+  void _startOfferingPoll() {
+    _offeringPoll?.cancel();
+    _offeringPoll = Timer.periodic(const Duration(seconds: 4), (_) async {
+      final status = job.value?.status;
+      if (!JobStatuses.isOffering(status)) {
+        _offeringPoll?.cancel();
+        _offeringPoll = null;
+        return;
+      }
+      try {
+        final response = await _jobRepository.getJob(jobId);
+        final detail = response.result;
+        if (detail == null) return;
+        if (detail.status == job.value?.status &&
+            detail.workerId == job.value?.workerId) {
+          return;
+        }
+        job.value = detail;
+        _startOfferCountdown();
+        _onStatusChanged(detail);
+        if (!JobStatuses.isOffering(detail.status)) {
+          _offeringPoll?.cancel();
+          _offeringPoll = null;
+        }
+      } catch (_) {}
     });
   }
 
@@ -100,7 +130,6 @@ class JobDetailController extends GetxController {
       final response = await _jobRepository.getJob(jobId);
       final detail = response.result;
       job.value = detail;
-      _lastStatus = detail?.status;
       _startOfferCountdown();
       if (detail != null && JobStatuses.isFailed(detail.status)) {
         _goHomeAfterFailure();
@@ -151,7 +180,7 @@ class JobDetailController extends GetxController {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
   }
 
-  Future<void> cancelJob({bool goHomeAfter = false}) async {
+  Future<void> cancelJob({bool goHomeAfter = true}) async {
     final reason = await _pickCancelReason();
     if (reason == null) return;
     if (reason.trim().isEmpty) {
@@ -163,7 +192,6 @@ class JobDetailController extends GetxController {
     try {
       final response = await _jobRepository.cancelJob(jobId, reason.trim());
       job.value = response.result;
-      // No success toast — job-update notification already covers this.
       if (goHomeAfter) {
         Get.offAllNamed(AppRoutes.home);
       }
@@ -211,6 +239,7 @@ class JobDetailController extends GetxController {
   @override
   void onClose() {
     _countdownTimer?.cancel();
+    _offeringPoll?.cancel();
     _jobUpdatedWorker?.dispose();
     if (Get.isRegistered<SignalRService>() && jobId > 0) {
       Get.find<SignalRService>().leaveJob(jobId);

@@ -43,8 +43,11 @@ class ConfirmJobView extends GetView<CreateJobController> {
                     ),
                   ),
                   SliverToBoxAdapter(
-                    child: _ProblemSection(
-                      text: controller.problemText.value,
+                    child: Obx(
+                      () => _ProblemSection(
+                        controller: controller,
+                        editable: controller.isCategoryBooking.value,
+                      ),
                     ),
                   ),
                   SliverToBoxAdapter(
@@ -313,9 +316,13 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _ProblemSection extends StatelessWidget {
-  const _ProblemSection({required this.text});
+  const _ProblemSection({
+    required this.controller,
+    required this.editable,
+  });
 
-  final String text;
+  final CreateJobController controller;
+  final bool editable;
 
   @override
   Widget build(BuildContext context) {
@@ -324,31 +331,73 @@ class _ProblemSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionLabel(
-            title: 'Problem',
-            subtitle: 'What you asked for help with',
+          _SectionLabel(
+            title: editable ? 'Short description' : 'Problem',
+            subtitle: editable
+                ? 'Optional note for the worker (recommended)'
+                : 'What you asked for help with',
           ),
           const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF8E7),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: AppColors.mutedBrown.withValues(alpha: 0.16),
+          if (editable)
+            TextField(
+              controller: controller.problemController,
+              minLines: 3,
+              maxLines: 5,
+              textInputAction: TextInputAction.done,
+              onChanged: (value) => controller.problemText.value = value,
+              decoration: InputDecoration(
+                hintText: 'e.g. Kitchen sink is leaking',
+                filled: true,
+                fillColor: const Color(0xFFFFF8E7),
+                contentPadding: const EdgeInsets.all(16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: BorderSide(
+                    color: AppColors.mutedBrown.withValues(alpha: 0.16),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: BorderSide(
+                    color: AppColors.mutedBrown.withValues(alpha: 0.16),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: AppColors.gold, width: 1.4),
+                ),
               ),
-            ),
-            child: Text(
-              text.trim().isEmpty ? '—' : text.trim(),
               style: const TextStyle(
                 fontSize: 15,
                 height: 1.45,
                 fontWeight: FontWeight.w500,
                 color: AppColors.nearBlack,
               ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8E7),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: AppColors.mutedBrown.withValues(alpha: 0.16),
+                ),
+              ),
+              child: Obx(() {
+                final text = controller.problemText.value;
+                return Text(
+                  text.trim().isEmpty ? '—' : text.trim(),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.45,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.nearBlack,
+                  ),
+                );
+              }),
             ),
-          ),
         ],
       ),
     );

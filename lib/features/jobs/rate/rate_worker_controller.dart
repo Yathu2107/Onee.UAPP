@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../app_service/network/api_response.dart';
 import '../../../common_widgets/app_snackbar.dart';
 import '../repository/job_repository.dart';
@@ -118,7 +119,7 @@ class RateWorkerController extends GetxController {
       final message = response.text.isNotEmpty
           ? response.text
           : 'Thanks for your rating.';
-      Get.back(result: true);
+      Get.offAllNamed(AppRoutes.home);
       AppSnackbar.success(message);
     } on ApiException catch (e) {
       AppSnackbar.error(e.message);

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -8,6 +11,7 @@ import 'package:get/get.dart';
 import 'app/routes/app_pages.dart';
 import 'app/routes/app_routes.dart';
 import 'app/theme/app_theme.dart';
+import 'app_service/network/debug_http_overrides.dart';
 import 'app_service/network/dio_client.dart';
 import 'app_service/notifications/local_notification_service.dart';
 import 'app_service/notifications/notification_badge_service.dart';
@@ -24,6 +28,12 @@ import 'features/notifications/repository/notification_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Local API uses a self-signed cert; Dio already bypasses it, but SignalR
+  // WebSockets need a global HttpOverrides to connect over HTTPS on LAN.
+  if (kDebugMode && !kIsWeb) {
+    HttpOverrides.global = DebugHttpOverrides();
+  }
 
   // Register before runApp so killed/background FCM can wake the isolate.
   try {
