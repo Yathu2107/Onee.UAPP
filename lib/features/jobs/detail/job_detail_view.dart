@@ -64,6 +64,9 @@ class JobDetailView extends GetView<JobDetailController> {
                     ),
                     slivers: [
                       SliverToBoxAdapter(child: _DetailHero(job: job)),
+                      SliverToBoxAdapter(
+                        child: _StatusTimeline(status: job.status),
+                      ),
                       SliverToBoxAdapter(child: _WorkerCard(job: job)),
                       SliverToBoxAdapter(child: _ProblemBlock(job: job)),
                       if (job.amount != null)
@@ -242,6 +245,127 @@ class _DetailHero extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatusTimeline extends StatelessWidget {
+  const _StatusTimeline({required this.status});
+
+  final String? status;
+
+  static const _steps = [
+    JobStatuses.offering,
+    JobStatuses.accepted,
+    JobStatuses.ongoing,
+    JobStatuses.completed,
+  ];
+
+  int get _activeIndex {
+    final s = status?.trim().toLowerCase();
+    if (s == 'offering') return 0;
+    if (s == 'accepted') return 1;
+    if (s == 'ongoing') return 2;
+    if (s == 'completed') return 3;
+    if (s == 'cancelled' || s == 'failed') return -1;
+    return 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = _activeIndex;
+    final cancelled = JobStatuses.isCancelledGroup(status);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Progress',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.nearBlack,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              for (var i = 0; i < _steps.length; i++) ...[
+                if (i > 0)
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      color: !cancelled && active >= i
+                          ? AppColors.gold
+                          : AppColors.mutedBrown.withValues(alpha: 0.2),
+                    ),
+                  ),
+                _TimelineDot(
+                  label: _steps[i],
+                  reached: !cancelled && active >= i,
+                  current: !cancelled && active == i,
+                ),
+              ],
+            ],
+          ),
+          if (cancelled) ...[
+            const SizedBox(height: 10),
+            Text(
+              status ?? 'Cancelled',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFFB3261E),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineDot extends StatelessWidget {
+  const _TimelineDot({
+    required this.label,
+    required this.reached,
+    required this.current,
+  });
+
+  final String label;
+  final bool reached;
+  final bool current;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: current ? 18 : 12,
+          height: current ? 18 : 12,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: reached ? AppColors.gold : AppColors.white,
+            border: Border.all(
+              color: reached
+                  ? AppColors.gold
+                  : AppColors.mutedBrown.withValues(alpha: 0.35),
+              width: 2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: current ? FontWeight.w800 : FontWeight.w600,
+            color: reached ? AppColors.nearBlack : AppColors.mutedBrown,
+          ),
+        ),
+      ],
     );
   }
 }

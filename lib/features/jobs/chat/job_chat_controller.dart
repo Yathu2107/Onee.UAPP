@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -28,6 +30,7 @@ class JobChatController extends GetxController {
 
   late final int jobId;
   Worker? _chatWorker;
+  Timer? _pollTimer;
 
   @override
   void onInit() {
@@ -60,6 +63,9 @@ class JobChatController extends GetxController {
     await _loadCurrentUserId();
     await Future.wait([loadChat(), _loadJobHeader()]);
     await _joinAndListen();
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _mergeChatSilently();
+    });
   }
 
   Future<void> _loadJobHeader() async {
@@ -97,11 +103,39 @@ class JobChatController extends GetxController {
 
     _chatWorker = ever<JobChatMessage?>(signalR.chatMessage, (msg) {
       if (msg == null || msg.jobId != jobId) return;
-      final exists = messages.any((m) => m.id == msg.id && msg.id != 0);
-      if (exists) return;
-      messages.add(msg);
-      _scrollToBottom();
+      _upsertMessage(msg);
     });
+  }
+
+  void _upsertMessage(JobChatMessage msg) {
+    final exists = messages.any((m) => m.id == msg.id && msg.id != 0);
+    if (exists) return;
+    messages.add(msg);
+    _scrollToBottom();
+  }
+
+  Future<void> _mergeChatSilently() async {
+    try {
+      final response = await _jobRepository.getChat(jobId);
+      final remote = response.result ?? <JobChatMessage>[];
+      var added = false;
+      for (final msg in remote) {
+        final exists = messages.any((m) => m.id == msg.id && msg.id != 0);
+        if (!exists) {
+          messages.add(msg);
+          added = true;
+        }
+      }
+      if (added) {
+        messages.sort((a, b) {
+          final aTime = a.createdOn?.millisecondsSinceEpoch ?? a.id;
+          final bTime = b.createdOn?.millisecondsSinceEpoch ?? b.id;
+          return aTime.compareTo(bTime);
+        });
+        messages.refresh();
+        _scrollToBottom();
+      }
+    } catch (_) {}
   }
 
   Future<void> loadChat() async {
@@ -140,11 +174,7 @@ class JobChatController extends GetxController {
       messageController.clear();
       final sent = response.result;
       if (sent != null) {
-        final exists = messages.any((m) => m.id == sent.id && sent.id != 0);
-        if (!exists) {
-          messages.add(sent);
-          _scrollToBottom();
-        }
+        _upsertMessage(sent);
       }
     } on ApiException catch (e) {
       AppSnackbar.error(e.message);
@@ -168,6 +198,7 @@ class JobChatController extends GetxController {
 
   @override
   void onClose() {
+    _pollTimer?.cancel();
     _chatWorker?.dispose();
     if (Get.isRegistered<SignalRService>() && jobId > 0) {
       Get.find<SignalRService>().leaveJob(jobId);

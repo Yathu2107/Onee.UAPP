@@ -32,6 +32,10 @@ class CreateJobController extends GetxController {
   final selectedWorkerIds = <String>[].obs;
   final selectedAddressId = RxnInt();
   final addresses = <SavedAddress>[].obs;
+  final categories = <JobCategory>[].obs;
+  final isLoadingCategories = false.obs;
+  final isCategoryBooking = false.obs;
+  final categoriesError = RxnString();
 
   String _textBeforeListen = '';
   bool _speechReady = false;
@@ -141,6 +145,7 @@ class CreateJobController extends GetxController {
 
     final text = problemController.text.trim();
     problemText.value = text;
+    isCategoryBooking.value = false;
     isFinding.value = true;
     try {
       final response = await _jobRepository.findWorkers(text);
@@ -153,6 +158,78 @@ class CreateJobController extends GetxController {
       }
 
       await loadAddresses();
+      Get.toNamed(AppRoutes.createJobWorkers);
+    } on ApiException catch (e) {
+      AppSnackbar.error(e.message);
+    } catch (_) {
+      AppSnackbar.error('Failed to find workers.');
+    } finally {
+      isFinding.value = false;
+    }
+  }
+
+  Future<void> loadCategories() async {
+    isLoadingCategories.value = true;
+    categoriesError.value = null;
+    try {
+      final response = await _jobRepository.getCategories();
+      categories.assignAll(response.result ?? <JobCategory>[]);
+      if (categories.isEmpty) {
+        categoriesError.value = 'No categories available right now.';
+      }
+    } on ApiException catch (e) {
+      categoriesError.value = e.message;
+      AppSnackbar.error(e.message);
+    } catch (_) {
+      categoriesError.value = 'Failed to load categories.';
+      AppSnackbar.error('Failed to load categories.');
+    } finally {
+      isLoadingCategories.value = false;
+    }
+  }
+
+  Future<void> findWorkersByCategory(JobCategory category) async {
+    if (isFinding.value) return;
+    if (category.id <= 0) {
+      AppSnackbar.error('Invalid category.');
+      return;
+    }
+
+    isFinding.value = true;
+    try {
+      await loadAddresses();
+      final defaults = addresses.where((a) => a.isDefault).toList();
+      if (defaults.isEmpty) {
+        AppSnackbar.info(
+          'Add a default saved address before browsing workers by category.',
+        );
+        return;
+      }
+      selectedAddressId.value = defaults.first.id;
+
+      final response =
+          await _jobRepository.findWorkersByCategory(category.id);
+      final result = response.result;
+      matchResult.value = JobMatchResult(
+        predictedCategory: result?.predictedCategory ?? category.categoryName,
+        confidence: result?.confidence,
+        categoryId: result?.categoryId ?? category.id,
+        categoryName: result?.categoryName ?? category.categoryName,
+        workers: result?.workers ?? const [],
+      );
+      selectedWorkerIds.clear();
+      isCategoryBooking.value = true;
+      problemController.text = '';
+      problemText.value = '';
+
+      final workers = matchResult.value?.workers ?? const <JobMatchWorker>[];
+      if (workers.isEmpty) {
+        AppSnackbar.info(
+          'No nearby workers for ${category.categoryName}. Try another category.',
+        );
+        return;
+      }
+
       Get.toNamed(AppRoutes.createJobWorkers);
     } on ApiException catch (e) {
       AppSnackbar.error(e.message);
@@ -254,10 +331,24 @@ class CreateJobController extends GetxController {
     if (isCreating.value) return;
     if (!validateWorkerStep()) return;
 
+    var text = problemText.value.trim();
+    if (text.isEmpty && isCategoryBooking.value) {
+      final category = matchResult.value?.categoryName?.trim();
+      text = (category != null && category.isNotEmpty)
+          ? 'Need help with $category'
+          : 'Need help';
+      problemText.value = text;
+      problemController.text = text;
+    }
+    if (text.isEmpty) {
+      AppSnackbar.info('Add a short description for the job.');
+      return;
+    }
+
     isCreating.value = true;
     try {
       final response = await _jobRepository.createJob(
-        text: problemText.value,
+        text: text,
         workerIds: List<String>.from(selectedWorkerIds),
         addressId: selectedAddressId.value,
       );
@@ -266,7 +357,6 @@ class CreateJobController extends GetxController {
         AppSnackbar.error('Job created but details were missing.');
         return;
       }
-      // No success toast — job-update notification already covers this.
       Get.offNamedUntil(
         AppRoutes.jobDetail,
         (route) =>

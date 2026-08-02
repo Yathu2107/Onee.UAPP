@@ -206,7 +206,7 @@ class _CreateJobCtaState extends State<_CreateJobCta> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Describe your problem',
+                      'Create a job',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -215,7 +215,7 @@ class _CreateJobCtaState extends State<_CreateJobCta> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Find nearby workers who can help',
+                      'Describe a problem or browse categories',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,

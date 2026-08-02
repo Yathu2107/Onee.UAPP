@@ -11,7 +11,9 @@ class AppRoutes {
   static const String addresses = '/addresses';
   static const String addressForm = '/address-form';
 
+  static const String createJobChooser = '/create-job';
   static const String createJobDescribe = '/create-job/describe';
+  static const String createJobCategories = '/create-job/categories';
   static const String createJobWorkers = '/create-job/workers';
   static const String createJobConfirm = '/create-job/confirm';
 
