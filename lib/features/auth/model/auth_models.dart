@@ -1,4 +1,5 @@
 import '../../../utils/json_helpers.dart';
+import '../../../utils/media_url.dart';
 
 class OtpVerifyResult {
   const OtpVerifyResult({
@@ -68,12 +69,15 @@ class UserDetails {
         'phone',
         'Phone',
       ]),
-      proImg: JsonHelpers.pickString(json, [
-        'proImg',
-        'ProImg',
-        'profileImage',
-        'image',
-      ]),
+      proImg: MediaUrl.resolve(
+        JsonHelpers.pickString(json, [
+          'proImg',
+          'ProImg',
+          'profileImage',
+          'image',
+        ]),
+        folder: 'User',
+      ),
       isOnline: JsonHelpers.pickBool(json, ['isOnline', 'IsOnline']),
       isActive: JsonHelpers.pickBool(json, ['isActive', 'IsActive']),
       latitude: JsonHelpers.pickDouble(json, ['latitude', 'Latitude']),

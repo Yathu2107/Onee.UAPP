@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../common_widgets/primary_button.dart';
+import '../../../common_widgets/profile_image_avatar.dart';
 import 'rate_worker_controller.dart';
 
 class RateWorkerView extends GetView<RateWorkerController> {
@@ -23,7 +24,10 @@ class RateWorkerView extends GetView<RateWorkerController> {
                 const SliverToBoxAdapter(child: _RateHero()),
                 Obx(
                   () => SliverToBoxAdapter(
-                    child: _WorkerBlock(name: controller.workerName.value),
+                    child: _WorkerBlock(
+                      name: controller.workerName.value,
+                      imageUrl: controller.workerImageUrl.value,
+                    ),
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -260,9 +264,13 @@ class _RateHero extends StatelessWidget {
 }
 
 class _WorkerBlock extends StatelessWidget {
-  const _WorkerBlock({required this.name});
+  const _WorkerBlock({
+    required this.name,
+    this.imageUrl,
+  });
 
   final String name;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -280,21 +288,10 @@ class _WorkerBlock extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.gold.withValues(alpha: 0.55),
-                ),
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/default_worker.png',
-                  fit: BoxFit.cover,
-                ),
-              ),
+            ProfileImageAvatar(
+              imageUrl: imageUrl,
+              size: 52,
+              borderColor: AppColors.gold.withValues(alpha: 0.55),
             ),
             const SizedBox(width: 12),
             Expanded(

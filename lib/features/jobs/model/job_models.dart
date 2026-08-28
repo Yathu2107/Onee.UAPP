@@ -1,4 +1,5 @@
 import '../../../utils/json_helpers.dart';
+import '../../../utils/media_url.dart';
 
 class JobListItem {
   const JobListItem({
@@ -85,6 +86,8 @@ class JobChatMessage {
           ]) ??
           0,
       senderId: JsonHelpers.pickString(json, [
+            'senderId',
+            'SenderId',
             'fk_sender_ID',
             'fK_sender_ID',
             'fkSenderId',
@@ -130,8 +133,10 @@ class JobDetail {
     this.categoryName,
     this.customerId,
     this.customerName,
+    this.customerImageUrl,
     this.workerId,
     this.workerName,
+    this.workerImageUrl,
     this.status,
     this.amount,
     this.cancelReason,
@@ -150,8 +155,10 @@ class JobDetail {
   final String? categoryName;
   final String? customerId;
   final String? customerName;
+  final String? customerImageUrl;
   final String? workerId;
   final String? workerName;
+  final String? workerImageUrl;
   final String? status;
   final double? amount;
   final String? cancelReason;
@@ -191,6 +198,14 @@ class JobDetail {
         'customer_Name',
         'customerName',
       ]),
+      customerImageUrl: MediaUrl.resolve(
+        JsonHelpers.pickString(json, [
+          'customer_Image_Url',
+          'customerImageUrl',
+          'Customer_Image_Url',
+        ]),
+        folder: 'User',
+      ),
       workerId: JsonHelpers.pickString(json, [
         'fK_worker_ID',
         'fk_worker_ID',
@@ -201,6 +216,14 @@ class JobDetail {
         'workerName',
         'Worker_Name',
       ]),
+      workerImageUrl: MediaUrl.resolve(
+        JsonHelpers.pickString(json, [
+          'worker_Image_Url',
+          'workerImageUrl',
+          'Worker_Image_Url',
+        ]),
+        folder: 'Worker',
+      ),
       status: JsonHelpers.pickString(json, ['status', 'Status']),
       amount: JsonHelpers.pickDouble(json, ['amount', 'Amount']),
       cancelReason: JsonHelpers.pickString(json, [
@@ -268,10 +291,13 @@ class JobMatchWorker {
         'phoneNumber',
         'PhoneNumber',
       ]),
-      profileImageUrl: JsonHelpers.pickString(json, [
-        'profileImageUrl',
-        'ProfileImageUrl',
-      ]),
+      profileImageUrl: MediaUrl.resolve(
+        JsonHelpers.pickString(json, [
+          'profileImageUrl',
+          'ProfileImageUrl',
+        ]),
+        folder: 'Worker',
+      ),
       distanceKm: JsonHelpers.pickDouble(json, [
         'distance_Km',
         'distanceKm',

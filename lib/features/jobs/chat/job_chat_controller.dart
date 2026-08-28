@@ -26,6 +26,7 @@ class JobChatController extends GetxController {
   final error = RxnString();
   final currentUserId = ''.obs;
   final workerName = 'Worker'.obs;
+  final workerImageUrl = RxnString();
   final jobCategory = ''.obs;
 
   late final int jobId;
@@ -76,6 +77,7 @@ class JobChatController extends GetxController {
       workerName.value = job.workerName?.trim().isNotEmpty == true
           ? job.workerName!.trim()
           : 'Worker';
+      workerImageUrl.value = job.workerImageUrl;
       jobCategory.value = job.categoryName?.trim() ?? '';
     } catch (_) {}
   }

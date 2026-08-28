@@ -15,13 +15,13 @@ class PushBannerBridge extends GetxService {
   int? _lastChatId;
   String? _currentUserId;
 
-  void start() {
+  Future<void> start() async {
     if (!Get.isRegistered<SignalRService>()) return;
     final signalR = Get.find<SignalRService>();
 
     _jobWorker?.dispose();
     _chatWorker?.dispose();
-    _loadCurrentUserId();
+    await _loadCurrentUserId();
 
     _jobWorker = ever<JobDetail?>(signalR.jobUpdated, (detail) {
       if (detail == null) return;
