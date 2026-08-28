@@ -4,10 +4,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 import '../../app/routes/app_routes.dart';
 import '../../features/auth/repository/auth_repository.dart';
 import '../notifications/local_notification_service.dart';
+import '../storage/secure_storage_service.dart';
 
 /// Runs when a data message arrives while the app is backgrounded.
 /// When [message.notification] is set, Android/iOS already show the tray
@@ -50,6 +52,7 @@ class FcmService extends GetxService {
   String get platform => Platform.isIOS ? 'ios' : 'android';
 
   bool _ready = false;
+  String? _currentUserId;
 
   Future<void> init() async {
     try {
@@ -71,6 +74,7 @@ class FcmService extends GetxService {
 
       _token = await messaging.getToken();
       _ready = true;
+      await _loadCurrentUserId();
 
       // Foreground only — OS does not show notification payloads here.
       FirebaseMessaging.onMessage.listen(_onForegroundMessage);
@@ -125,6 +129,12 @@ class FcmService extends GetxService {
   }
 
   void _onForegroundMessage(RemoteMessage message) {
+    final type = (message.data['type']?.toString() ?? '').trim().toLowerCase();
+    if (type == 'chat_message' || type == 'chat') {
+      final senderId = message.data['senderId']?.toString() ?? '';
+      if (_isCurrentUser(senderId)) return;
+    }
+
     final title =
         message.notification?.title ?? message.data['title']?.toString();
     final body =
@@ -150,6 +160,29 @@ class FcmService extends GetxService {
         type: message.data['type']?.toString(),
       );
     }
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    try {
+      if (!Get.isRegistered<SecureStorageService>()) return;
+      final token = await Get.find<SecureStorageService>().getToken();
+      if (token == null || token.isEmpty) return;
+      final decoded = JwtDecoder.decode(token);
+      _currentUserId = (decoded['uid']?.toString() ??
+              decoded['sub']?.toString() ??
+              decoded['nameid']?.toString() ??
+              '')
+          .trim();
+    } catch (_) {
+      _currentUserId = null;
+    }
+  }
+
+  bool _isCurrentUser(String? userId) {
+    final uid = _currentUserId?.trim() ?? '';
+    final other = userId?.trim() ?? '';
+    if (uid.isEmpty || other.isEmpty) return false;
+    return uid.toLowerCase() == other.toLowerCase();
   }
 
   void _handleMessage(RemoteMessage message) {

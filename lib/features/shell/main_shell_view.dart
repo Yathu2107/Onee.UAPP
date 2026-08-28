@@ -55,7 +55,7 @@ class _MainShellViewState extends State<MainShellView> {
         await Get.find<SignalRService>().connect();
       }
       if (Get.isRegistered<PushBannerBridge>()) {
-        Get.find<PushBannerBridge>().start();
+        await Get.find<PushBannerBridge>().start();
       }
       if (Get.isRegistered<FcmService>()) {
         await Get.find<FcmService>().registerWithBackend();

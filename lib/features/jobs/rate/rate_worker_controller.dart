@@ -15,6 +15,7 @@ class RateWorkerController extends GetxController {
   final rating = 0.obs;
   final isSubmitting = false.obs;
   final workerName = 'your worker'.obs;
+  final workerImageUrl = RxnString();
   final selectedQuickTags = <String>[].obs;
 
   static const quickTags = <String>[
@@ -72,10 +73,12 @@ class RateWorkerController extends GetxController {
     if (jobId <= 0) return;
     try {
       final response = await _jobRepository.getJob(jobId);
-      final name = response.result?.workerName?.trim();
+      final job = response.result;
+      final name = job?.workerName?.trim();
       if (name != null && name.isNotEmpty) {
         workerName.value = name;
       }
+      workerImageUrl.value = job?.workerImageUrl;
     } catch (_) {}
   }
 
